@@ -56,11 +56,11 @@ class MCPHiddenLayers(nn.Module):
     Custom hidden network architecture for policy and value function.
     It receives as input the features extracted by the feature extractor.
 
-    :param feature_dim: dimension of the input features
+    :param state_dim: dimension of the input features
     """
     def __init__(
         self,
-        feature_dim: int,
+        state_dim: int,
         goal_dim: int,
         num_primitives: int
     ):
@@ -68,7 +68,7 @@ class MCPHiddenLayers(nn.Module):
 
         # IMPORTANT:
         # Save output dimensions, used to create the distributions
-        self.feature_dim = feature_dim
+        self.state_dim = state_dim
         self.goal_dim = goal_dim
         self.latent_dim_pi = hypers.hid_layer_sizes[-1]
         self.latent_dim_vf = hypers.hid_layer_sizes[-1]
@@ -79,7 +79,7 @@ class MCPHiddenLayers(nn.Module):
 
         # Gating Function:
         self.state_encoder = nn.Sequential(
-            nn.Linear(feature_dim, 512),
+            nn.Linear(state_dim, 512),
             nn.ReLU(),
             nn.Linear(512, 256),
             nn.ReLU(),
@@ -99,7 +99,7 @@ class MCPHiddenLayers(nn.Module):
         )
 
         self.primitive_state_encoder = nn.Sequential(
-            nn.Sequential(feature_dim, 512),
+            nn.Sequential(state_dim, 512),
             nn.ReLU(),
             nn.Linear(512, 256),
             nn.ReLU(),
@@ -118,7 +118,7 @@ class MCPHiddenLayers(nn.Module):
 
         # build the Value network hidden layers
         self.value_net = nn.Sequential(
-            nn.Linear(feature_dim + goal_dim, 1024),
+            nn.Linear(state_dim + goal_dim, 1024),
             nn.ReLU(),
             nn.Linear(1024, 512),
             nn.ReLU(),
@@ -130,21 +130,21 @@ class MCPHiddenLayers(nn.Module):
 
     def get_net(self, hid_layer_sizes, activation_fns):
         layers = []
-        feature_dim = self.feature_dim
+        feature_dim = self.state_dim
         for size, activation_fn in zip(hid_layer_sizes, activation_fns):
             layers += [nn.Linear(feature_dim, size), activation_fn()]
             feature_dim = size
         return nn.Sequential(*layers)
 
-    def forward_actor(self, features: th.Tensor, goal: th.Tensor) -> th.Tensor:
+    def forward_actor(self, state: th.Tensor, goal: th.Tensor) -> th.Tensor:
         mus, sigmas, weights = [], [], []
 
-        state_embed = self.state_encoder(features)
+        state_embed = self.state_encoder(state)
         goal_embed = self.goal_encoder(goal)
         embed = th.cat((state_embed, goal_embed), -1)
         weights = self.gate(embed)
 
-        prim_embed = self.primitive_state_encoder(features)
+        prim_embed = self.primitive_state_encoder(state)
         for i in range(self.num_primitives):
             out = self.primitives[i](prim_embed)
             mu, sigma = th.split(out, 2, -1)
@@ -181,8 +181,8 @@ class MCPHiddenLayers(nn.Module):
         # scale_tril = th.diag_embed(1 / denom)
         # return distributions.MultivariateNormal(mean, scale_tril=scale_tril).sample()
 
-    def forward_critic(self, features: th.Tensor, goal: th.Tensor) -> th.Tensor:
-        value_input = th.cat((features, goal), -1)
+    def forward_critic(self, state: th.Tensor, goal: th.Tensor) -> th.Tensor:
+        value_input = th.cat((state, goal), -1)
         value = self.value_net(value_input)
         return value
 
@@ -192,7 +192,9 @@ class MCPHiddenLayers(nn.Module):
         :return: (th.Tensor, th.Tensor) latent_policy, latent_value of the specified network.
             If all layers are shared, then ``latent_policy == latent_value``
         """
-        return self.policy_net(features), self.value_net(features)
+        state = features['state']
+        goal = features['goal']
+        return self.forward_actor(state, goal), self.forward_critic(state, goal)
 
 
 class CustomActorCriticPolicy(ActorCriticPolicy):

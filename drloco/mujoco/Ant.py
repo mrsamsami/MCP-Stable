@@ -4,8 +4,8 @@ from gym.envs.mujoco import AntEnv
 
 class AntEnvV2(AntEnv):
     def __init__(self, direction: int = 0):
-        super.__init__()
         self.direction = direction
+        super().__init__()
 
     def step(self, a):
         if self.direction == 0:

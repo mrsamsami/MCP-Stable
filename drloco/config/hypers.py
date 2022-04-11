@@ -98,6 +98,18 @@ n_envs = 8 if utils.is_remote() and not cfg.DEBUG else 1
 hid_layer_sizes = [512]*2
 activation_fns = [th.nn.Tanh]*2
 
+# MCP
+mcp_shared_hid_layer_sizes = [512, 256]
+mcp_shared_activation_fns = [th.nn.ReLU]*2
+mcp_hid_layer_sizes = [256]*2
+mcp_activation_fns = [th.nn.ReLU, th.nn.Identity]
+
+gate_shared_hid_layer_sizes = [256, 1]
+gate_shared_activation_fns = [th.nn.ReLU, th.nn.Sigmoid]
+gate_hid_layer_sizes = [512, 256]
+gate_activation_fns = [th.nn.ReLU]*2
+
+
 # the cliprange specifies the maximum allowed distance between
 # consequtive policies in order to avoid disruptive policy updates
 if is_mod(MOD_CLIPRANGE_SCHED):

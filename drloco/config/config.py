@@ -31,7 +31,7 @@ MIN_STABLE_DISTANCE = 15
 # do you want to use Weights & Biases (WB)? I love it!
 # It syncs the tensorboard logs to WB, logs all hyperparameters,
 # and allows you to effectively manage, monitor and compare your agents!
-USE_WANDB = True
+USE_WANDB = False
 
 if USE_WANDB:
     # give your project a name

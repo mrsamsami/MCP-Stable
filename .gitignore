@@ -16,3 +16,4 @@ mujoco/gym_mimic_envs\.egg-info/
 /wandb/
 
 docs/_build/
+out

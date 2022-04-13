@@ -70,6 +70,7 @@ def init_wandb(model):
     if cfg.is_mod(cfg.MOD_CLIPRANGE_SCHED):
         params.update({"clip0": cfg.clip_start, "clip1": cfg.clip_end})
 
+    if cfgl.USE_WANDB:
     wandb.init(config=params, sync_tensorboard=True, name=cfgl.WB_RUN_NAME,
                project=cfgl.WB_PROJECT_NAME, notes=cfgl.WB_RUN_DESCRIPTION)
 
@@ -121,7 +122,7 @@ def train():
     if not cfgl.DEBUG: init_wandb(model)
 
     # print model path and modification parameters
-    utils.log('RUN DESCRIPTION: \n' + cfgl.WB_RUN_DESCRIPTION)
+    # utils.log('RUN DESCRIPTION: \n' + cfgl.WB_RUN_DESCRIPTION)
     utils.log('Training started',
               ['Model: ' + cfg.save_path, 'Modifications: ' + cfg.modification])
 

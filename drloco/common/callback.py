@@ -88,8 +88,8 @@ class TrainingMonitor(BaseCallback):
                 import wandb
                 # log required num of steps to wandb
                 if not self.has_reached_stable_walking:
-                    wandb.run.summary['steps_to_convergence'] = self.num_timesteps
-                    wandb.log({'log_steps_to_convergence': self.num_timesteps})
+                    # wandb.run.summary['steps_to_convergence'] = self.num_timesteps
+                    # wandb.log({'log_steps_to_convergence': self.num_timesteps})
                     self.has_reached_stable_walking = True
                 utils.log("WE COULD FINISH TRAINING EARLY!",
                           [f'Agent learned to stably walk '
@@ -206,8 +206,8 @@ class TrainingMonitor(BaseCallback):
                 self.log_scalar('acts/3. saturated actions percentage (all acts in a batch)',
                         sat_acts_percentage),
 
-                wandb.log({"_hist/actions": wandb.Histogram(
-                    np_histogram=np.histogram(actions, bins=200))}, step=self.num_timesteps)
+                # wandb.log({"_hist/actions": wandb.Histogram(
+                #     np_histogram=np.histogram(actions, bins=200))}, step=self.num_timesteps)
 
         # log ET and RSI phases
         # et_phases = self.env.get_attr('et_phases')
@@ -226,8 +226,8 @@ class TrainingMonitor(BaseCallback):
 
         ep_lens = self.env.get_attr('ep_lens')
         ep_lens = [ep_len for env_lens in ep_lens for ep_len in env_lens]
-        wandb.log({"_hist/ep_lens": wandb.Histogram(
-            np_histogram=np.histogram(ep_lens, bins=40))}, step=self.num_timesteps)
+        # wandb.log({"_hist/ep_lens": wandb.Histogram(
+        #     np_histogram=np.histogram(ep_lens, bins=40))}, step=self.num_timesteps)
 
         # difficult_rsi_phases = self.env.get_attr('difficult_rsi_phases')
         # difficult_rsi_phases = [phase for env_phases in difficult_rsi_phases for phase in env_phases]
@@ -239,8 +239,8 @@ class TrainingMonitor(BaseCallback):
             utils.log(f'Logstd after {int(self.num_timesteps/1e3)}k timesteps:',
                       [f'mean std: {mean_std}', f'std of stds: {std_of_stds}'])
         # log histograms
-        wandb.log({"_det_eval/1. walked distances": wandb.Histogram(
-        np_histogram=np.histogram(self.moved_distances, bins=20))}, step=self.num_timesteps)
+        # wandb.log({"_det_eval/1. walked distances": wandb.Histogram(
+        # np_histogram=np.histogram(self.moved_distances, bins=20))}, step=self.num_timesteps)
 
 
     def save_model_if_good(self, mean_rew, ep_ret):

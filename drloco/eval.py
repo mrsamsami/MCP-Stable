@@ -3,7 +3,7 @@ import sys
 from os import getcwd
 
 from tqdm import tqdm
-sys.path.append(getcwd())
+# sys.path.append(getcwd())
 
 import os.path
 import glob, wandb

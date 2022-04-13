@@ -1,7 +1,7 @@
 # add current working directory to the system path
 import sys
 from os import getcwd
-sys.path.append(getcwd())
+# sys.path.append(getcwd())
 
 # import required modules
 import os.path
@@ -71,8 +71,8 @@ def init_wandb(model):
         params.update({"clip0": cfg.clip_start, "clip1": cfg.clip_end})
 
     if cfgl.USE_WANDB:
-    wandb.init(config=params, sync_tensorboard=True, name=cfgl.WB_RUN_NAME,
-               project=cfgl.WB_PROJECT_NAME, notes=cfgl.WB_RUN_DESCRIPTION)
+        wandb.init(config=params, sync_tensorboard=True, name=cfgl.WB_RUN_NAME,
+                    project=cfgl.WB_PROJECT_NAME, notes=cfgl.WB_RUN_DESCRIPTION)
 
 
 def train():

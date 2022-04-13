@@ -17,3 +17,4 @@ mujoco/gym_mimic_envs\.egg-info/
 
 docs/_build/
 out
+*.egg*

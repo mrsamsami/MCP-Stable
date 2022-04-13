@@ -1,4 +1,7 @@
+import os
+import random
 import gym, wandb
+import torch
 import numpy as np
 import seaborn as sns
 from os import path, getcwd
@@ -337,3 +340,14 @@ def resetExponentialRunningSmoothing(label, value=0):
     global _exp_weighted_averages
     _exp_weighted_averages[label] = value
     return True
+
+def set_seed(seed_value, use_cuda=True):
+    np.random.seed(seed_value) # cpu vars
+    torch.manual_seed(seed_value) # cpu  vars
+    random.seed(seed_value) # Python
+    os.environ['PYTHONHASHSEED'] = str(seed_value) # Python hash buildin
+    if use_cuda:
+        torch.cuda.manual_seed(seed_value)
+        torch.cuda.manual_seed_all(seed_value) # gpu vars
+        torch.backends.cudnn.deterministic = True  #needed
+        torch.backends.cudnn.benchmark = False

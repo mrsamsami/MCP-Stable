@@ -1,3 +1,10 @@
+# add current working directory to the system path
+import sys
+from os import getcwd
+
+from tqdm import tqdm
+sys.path.append(getcwd())
+
 import os.path
 import glob, wandb
 import numpy as np
@@ -16,12 +23,11 @@ PLOT_RESULTS = False
 DETERMINISTIC_ACTIONS = True
 
 FROM_PATH = True
-PATH = "/mnt/88E4BD3EE4BD2EF6/Masters/M.Sc. Thesis/Code/models/dmm/mirr_exps/cstm_pi/pi_deltas/norm_acts/" \
-       "mim3d/8envs/ppo2/1.0mio/672-evaled-ret-12901"
+PATH = "models/train/cstm_pi/mirr_py/StraightMimicWalker/8envs/8mio/861/"
 if not PATH.endswith('/'): PATH += '/'
 
 # evaluate for n episodes
-n_eps = 10
+n_eps = 1
 # how many actions to record in each episode
 rec_n_steps = 1000
 
@@ -35,12 +41,13 @@ def eval_model(run_id, checkpoint):
     else:
         save_path = cfg.save_path
 
-    env = utils.load_env(checkpoint, save_path, cfg.env_id)
+    env = utils.load_env(checkpoint, save_path, "StraightMimicWalker")
     mimic_env = env.venv.envs[0]
     mimic_env.activate_evaluation()
 
     # load model
     model_path = save_path + f'models/model_{checkpoint}.zip'
+    # model_path = "models/train/cstm_pi/mirr_py/StraightMimicWalker/8envs/8mio/696/models/model_ep_ret2100.0_4M.zip"
     model = PPO.load(model_path, env)
 
     print('\nModel:\n', model_path + '\n')
@@ -54,6 +61,7 @@ def eval_model(run_id, checkpoint):
 
     if not RENDER: print('Episodes finished:\n0 ', end='')
 
+    pbar = tqdm(total=n_eps)
     while True:
         ep_dur += 1
         action, hid_states = model.predict(obs, deterministic=DETERMINISTIC_ACTIONS)
@@ -61,13 +69,13 @@ def eval_model(run_id, checkpoint):
             all_actions[ep_count, :, ep_dur - 1] = action
         obs, reward, done, info = env.step(action)
         ep_rewards += [reward[0] if isinstance(reward,list) else reward]
-        done_is_scalar = isinstance(done, bool) or \
-                         isinstance(done, np.bool_) or isinstance(done, np.bool)
+        done_is_scalar = isinstance(done, bool) or isinstance(done, np.bool_)
         done_is_list = isinstance(done, list)
         done = (done_is_scalar and done) or (done_is_list and done.any())
         # end the episode also after a max amount of steps
         done = done or (ep_dur > 2000)
         if done:
+            pbar.update(1)
             ep_durations.append(ep_dur)
             # clip ep_dur to max number of steps to save
             ep_dur = min(ep_dur, rec_n_steps)
@@ -81,13 +89,15 @@ def eval_model(run_id, checkpoint):
             ep_count += 1
             # stop evaluation after enough episodes were observed
             if ep_count >= n_eps: break
-            elif ep_count % 5 == 0:
-                print(f'-> {ep_count}', end=' ', flush=True)
+            # elif ep_count % 5 == 0:
+            #     print(f'-> {ep_count}', end=' ', flush=True)
             env.reset()
 
-        if RENDER: env.render()
-    env.close()
 
+        if RENDER:
+            env.render()
+    env.close()
+    pbar.close()
     mean_return = np.mean(all_returns)
     print('\n\nAverage episode return was: ', mean_return)
 
@@ -131,46 +141,48 @@ def eval_model(run_id, checkpoint):
                    colors='#cccccc', linestyles='dashed')
         plt.title(f"Returns of {n_eps} epochs")
         plt.show()
+    record_video(model, checkpoint, all_returns, relevant_eps, save_path)
 
-    record_video(model, checkpoint, all_returns, relevant_eps)
-
-def record_video(model, checkpoint, all_returns, relevant_eps):
+def record_video(model, checkpoint, all_returns, relevant_eps, save_path):
     utils.log("Preparing video recording!")
 
-    if utils.is_remote():
-        import pyvirtualdisplay
-        # Creates a virtual display for OpenAI gym
-        pyvirtualdisplay.Display(visible=0, size=(1400, 900)).start()
+    # if utils.is_remote():
+    #     import pyvirtualdisplay
+    #     # Creates a virtual display for OpenAI gym
+    #     pyvirtualdisplay.Display(visible=0, size=(1400, 900)).start()
 
     import gym
     from stable_baselines3.common.vec_env import VecVideoRecorder
-
+    video_length = 1000
     # load the environment
-    env = utils.load_env(checkpoint, cfg.save_path, cfg.env_id)
+    env = utils.load_env(checkpoint, save_path, "StraightMimicWalker")
     mimic_env = env.venv.envs[0].env
     mimic_env.activate_evaluation()
 
     # build the video path
     pi_string = 'determin' if DETERMINISTIC_ACTIONS else 'stochastic'
-    video_path = cfg.save_path + 'videos_' + pi_string
+    video_path = save_path + 'videos_' + pi_string
 
     # setup the video recording
     env = VecVideoRecorder(env, video_path,
                            record_video_trigger=lambda x: x >= 0,
-                           video_length=100)
+                           video_length=video_length)
 
     obs = env.reset()
-    for _ in range(101):
+    vid_len = 0
+    for _ in range(video_length):
         action, hid_states = model.predict(obs, deterministic=DETERMINISTIC_ACTIONS)
-        action =  [env.action_space.sample()]
+        # action =  [env.action_space.sample()]
         obs, reward, done, info = env.step(action)
-        env.render()
+        vid_len += 1
+        #  env.render()
         # only reset when agent has fallen
         # if has_fallen(mimic_env):
         #     video_env.reset()
 
     # Save the video
     env.close()
+    print(f"Ep len: {vid_len}")
 
 
 
@@ -264,7 +276,7 @@ def record_video_OLD(model, checkpoint, all_returns, relevant_eps):
     # filter out broken videos, filesize < 1MB
     mp4_paths = [path for path in mp4_paths_all if os.path.getsize(path)>1024**2]
     utils.log('MP4 Paths:', mp4_paths)
-    wandb.log({"video": wandb.Video(mp4_paths[0], fps=16, format='gif')})
+    # wandb.log({"video": wandb.Video(mp4_paths[0], fps=16, format='gif')})
     # wandb.log({"video": wandb.Video(mp4_paths[1], fps=4, format='mp4')})
 
 
@@ -274,8 +286,4 @@ def has_fallen(mimic_env):
 
 
 if __name__ == "__main__":
-    pass
-# eval.py was called from another script
-else:
-    RENDER = False
-    FROM_PATH = False
+    eval_model(0, "ep_ret2700.0_4M")

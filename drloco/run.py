@@ -5,7 +5,7 @@ The policy can be used sarcastically and deterministically.
 # add current working directory to the system path
 import sys
 from os import getcwd
-sys.path.append(getcwd())
+# sys.path.append(getcwd())
 
 from drloco.mujoco.monitor_wrapper import Monitor
 from stable_baselines3 import PPO

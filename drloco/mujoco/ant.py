@@ -1,11 +1,13 @@
 import numpy as np
-from gym.envs.mujoco import AntEnv
+from gym import utils
+from gym.envs.mujoco import mujoco_env, AntEnv
 
 
-class AntEnvV2(AntEnv):
-    def __init__(self, direction: int = 0):
+class AntEnvV2(mujoco_env.MujocoEnv, utils.EzPickle):
+    def __init__(self, direction=0):
         self.direction = direction
-        super().__init__()
+        mujoco_env.MujocoEnv.__init__(self, "ant.xml", 5)
+        utils.EzPickle.__init__(self)
 
     def step(self, a):
         if self.direction == 0:
@@ -50,3 +52,23 @@ class AntEnvV2(AntEnv):
                 reward_survive=survive_reward,
             ),
         )
+
+    def _get_obs(self):
+        return np.concatenate(
+            [
+                self.sim.data.qpos.flat[2:],
+                self.sim.data.qvel.flat,
+                np.clip(self.sim.data.cfrc_ext, -1, 1).flat,
+            ]
+        )
+
+    def reset_model(self):
+        qpos = self.init_qpos + self.np_random.uniform(
+            size=self.model.nq, low=-0.1, high=0.1
+        )
+        qvel = self.init_qvel + self.np_random.randn(self.model.nv) * 0.1
+        self.set_state(qpos, qvel)
+        return self._get_obs()
+
+    def viewer_setup(self):
+        self.viewer.cam.distance = self.model.stat.extent * 0.5

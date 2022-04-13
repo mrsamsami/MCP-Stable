@@ -1,7 +1,7 @@
 # add current working directory to the system path
 import sys
 from os import getcwd
-sys.path.append(getcwd())
+# sys.path.append(getcwd())
 
 # import required modules
 import os.path

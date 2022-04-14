@@ -1,6 +1,8 @@
 import gym, wandb
 import numpy as np
 import seaborn as sns
+from matplotlib import animation
+import matplotlib.pyplot as plt
 from os import path, getcwd
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
 
@@ -336,3 +338,16 @@ def resetExponentialRunningSmoothing(label, value=0):
     global _exp_weighted_averages
     _exp_weighted_averages[label] = value
     return True
+
+
+def save_as_gif(frames, path='./', filename='animation.gif'):
+    plt.figure(figsize=(frames[0].shape[1] / 72.0, frames[0].shape[0] / 72.0), dpi=72)
+
+    patch = plt.imshow(frames[0])
+    plt.axis('off')
+
+    def animate(i):
+        patch.set_data(frames[i])
+
+    anim = animation.FuncAnimation(plt.gcf(), animate, frames = len(frames), interval=50)
+    anim.save(path + filename, writer='imagemagick', fps=60)

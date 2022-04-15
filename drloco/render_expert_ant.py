@@ -28,4 +28,4 @@ for t in range(1000):
 
 env.close()
 if save_gif:
-    save_as_gif(frames, './animations', "ppo_ant_direction{}.gif".format(direction))
+    save_as_gif(frames, './animations/', "ppo_ant_direction{}.gif".format(direction))

@@ -65,7 +65,7 @@ ep_dur_max = 3000
 # ---------------------------------------------------
 
 # The discount factor we found to be optimal for different control frequencies
-gamma = {50:0.99, 100: 0.99, 200:0.995, 400:0.998}[cfg.CTRL_FREQ]
+gamma = {5:0.99, 50:0.99, 100: 0.99, 200:0.995, 400:0.998}[cfg.CTRL_FREQ]
 
 # PPO samples the actions from a Gaussian Distribution.
 # This hyperparameter specifies the the log standard deviation

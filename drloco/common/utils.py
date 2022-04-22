@@ -22,7 +22,7 @@ def is_remote():
     To detect the remote server, we just check for the scripts absolute path
     which is different on both machines.
     """
-    return 'code/torch' in path.abspath(getcwd())
+    return True
 
 def get_project_path():
     """Returns the absolute path to the project folder,
@@ -203,8 +203,8 @@ def save_model(model, path, checkpoint, full=False):
     if full:
         save_pi_weights(model, checkpoint)
         # save model and env to wandb
-        wandb.save(model_path)
-        wandb.save(env_path)
+        # wandb.save(model_path)
+        # wandb.save(env_path)
 
     return model_path, env_path
 

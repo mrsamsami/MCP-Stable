@@ -264,7 +264,7 @@ def record_video_OLD(model, checkpoint, all_returns, relevant_eps):
     # filter out broken videos, filesize < 1MB
     mp4_paths = [path for path in mp4_paths_all if os.path.getsize(path)>1024**2]
     utils.log('MP4 Paths:', mp4_paths)
-    wandb.log({"video": wandb.Video(mp4_paths[0], fps=16, format='gif')})
+    # wandb.log({"video": wandb.Video(mp4_paths[0], fps=16, format='gif')})
     # wandb.log({"video": wandb.Video(mp4_paths[1], fps=4, format='mp4')})
 
 

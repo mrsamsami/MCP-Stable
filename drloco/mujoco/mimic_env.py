@@ -336,7 +336,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         # estimate multiple phase variables from the phase plot of multiple joints
         phases = []
-        joint_indices = self.get_joint_indices_for_phase_estimation()
+        pos_joint_indices, vel_joint_indices = self.get_joint_indices_for_phase_estimation()
 
         # in debugging mode, use the qpos and qvel info from the ref trajecs
         if debug:
@@ -344,9 +344,9 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             # check all joints
             # joint_indices = range(len(qpos))
 
-        for joint_index in joint_indices:
-            pos = qpos[joint_index]
-            vel = qvel[joint_index]
+        for pos_joint_index, vel_joint_index in zip(pos_joint_indices, vel_joint_indices):
+            pos = qpos[pos_joint_index]
+            vel = qvel[vel_joint_index]
             phase_angle = np.arctan2(vel, -pos)
             # normalize the phase angle to the range [-1, 1]
             phases += [phase_angle / np.pi]
@@ -357,45 +357,45 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
             vec_norm_normed = vec_norm / 5
             phases += [vec_norm_normed]
 
-            if debug:
-                # collect the hip pos and vel for the phase plot
-                try:self.phase_poss is None
-                except:
-                    self.phase_poss = {key: [] for key in joint_indices}
-                    self.phase_vels = {key: [] for key in joint_indices}
-                    self.phase_angles = {key: [] for key in joint_indices}
-                    self.vec_norms = {key: [] for key in joint_indices}
+            # if debug:
+            #     # collect the hip pos and vel for the phase plot
+            #     try:self.phase_poss is None
+            #     except:
+            #         self.phase_poss = {key: [] for key in joint_indices}
+            #         self.phase_vels = {key: [] for key in joint_indices}
+            #         self.phase_angles = {key: [] for key in joint_indices}
+            #         self.vec_norms = {key: [] for key in joint_indices}
 
-                self.phase_poss[joint_index].append(pos)
-                self.phase_vels[joint_index].append(vel)
-                self.phase_angles[joint_index].append(phase_angle/np.pi)
-                self.vec_norms[joint_index].append(vec_norm)
+            #     self.phase_poss[joint_index].append(pos)
+            #     self.phase_vels[joint_index].append(vel)
+            #     self.phase_angles[joint_index].append(phase_angle/np.pi)
+            #     self.vec_norms[joint_index].append(vec_norm)
 
 
-                if len(self.phase_poss[joint_index]) >= 500:
-                    from matplotlib import pyplot as plt
-                    from drloco.common.utils import smooth_exponential as smooth
-                    fig, subs = plt.subplots(1, 3)
+            #     if len(self.phase_poss[joint_index]) >= 500:
+            #         from matplotlib import pyplot as plt
+            #         from drloco.common.utils import smooth_exponential as smooth
+            #         fig, subs = plt.subplots(1, 3)
 
-                    plt.suptitle(f'Joint: {self.refs.get_kinematic_label_at_pos(joint_index)}',
-                                 fontsize=16)
-                    subs[0].plot(smooth(self.phase_poss[joint_index], alpha=0.95),
-                                 smooth(self.phase_vels[joint_index], alpha=0.95))
-                    subs[0].set_title('Phase Plot')
-                    subs[0].set_xlabel('Angle [rad]')
-                    subs[0].set_ylabel('Angular Velocity [rad/s]')
+            #         plt.suptitle(f'Joint: {self.refs.get_kinematic_label_at_pos(joint_index)}',
+            #                      fontsize=16)
+            #         subs[0].plot(smooth(self.phase_poss[joint_index], alpha=0.95),
+            #                      smooth(self.phase_vels[joint_index], alpha=0.95))
+            #         subs[0].set_title('Phase Plot')
+            #         subs[0].set_xlabel('Angle [rad]')
+            #         subs[0].set_ylabel('Angular Velocity [rad/s]')
 
-                    subs[1].plot(self.phase_angles[joint_index])
-                    subs[1].set_title('Phase Vector Angle')
-                    subs[1].set_xlabel('Timesteps [1/200s]')
-                    subs[1].set_ylabel('Phase Angle [rad]')
+            #         subs[1].plot(self.phase_angles[joint_index])
+            #         subs[1].set_title('Phase Vector Angle')
+            #         subs[1].set_xlabel('Timesteps [1/200s]')
+            #         subs[1].set_ylabel('Phase Angle [rad]')
 
-                    subs[2].plot(self.vec_norms[joint_index])
-                    subs[2].set_title('Phase Vector Norm')
-                    subs[1].set_xlabel('Timesteps [1/200s]')
-                    plt.show()
+            #         subs[2].plot(self.vec_norms[joint_index])
+            #         subs[2].set_title('Phase Vector Norm')
+            #         subs[1].set_xlabel('Timesteps [1/200s]')
+            #         plt.show()
 
-                    if joint_index == joint_indices[-1]: exit(33)
+            #         if joint_index == joint_indices[-1]: exit(33)
 
         # scale the phase angle to be in range [-1,1]
         return phases
@@ -426,7 +426,9 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # @Guoping, when waling in circles, the COM Y position should not be part of the observations,
         #  as the actions should be independent of the walkers position in 3D space. On the other side,
         #  the COM is moving in Y direction during walking, so we should include this information somehow?
-        qpos = qpos[1:]
+        # qpos = qpos[1:]
+        # qpos = qpos[len(self._get_COM_indices())-1:]
+        qpos = qpos[2:]
 
         obs = np.array([*phases, *self.desired_walking_speed, *qpos, *qvel])
 
@@ -543,7 +545,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         # Set the following constant to True to initialize walker always in ground contact.
         # CAUTION: This requires your mujoco model to have sites on their foot soul.
         # See drloco/mujoco/xml/walker3d_flat_feet.xml for an example.
-        OPTIMIZE_GROUND_CONTANT_ON_INITIALIZATION = True
+        OPTIMIZE_GROUND_CONTANT_ON_INITIALIZATION = False
         if OPTIMIZE_GROUND_CONTANT_ON_INITIALIZATION:
             # we determine the lowest foot position (4 sites at the bottom of each foot in the XML file)
             foot_corner_positions = self.data.site_xpos

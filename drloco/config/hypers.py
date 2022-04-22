@@ -17,7 +17,8 @@ MOD_CLIPRANGE_SCHED = 'clip_sched'
 
 # todo: shift it to the straight walker env
 # learn policy for right step only, mirror states and actions for the left step
-MOD_MIRR_POLICY = 'mirr_py'
+# MOD_MIRR_POLICY = 'mirr_py'
+MOD_MIRR_POLICY = 'no_mirr_py'
 
 # specify modifications to the baseline algorithm, e.g. mirroring policy
 modifications_list = [MOD_CUSTOM_POLICY, MOD_MIRR_POLICY]
@@ -55,7 +56,7 @@ rew_scale = 1
 alive_bonus = 0.2 * rew_scale
 
 # Early Termination: maximum steps in the environment per episode
-ep_dur_max = 3000
+ep_dur_max = 1000
 
 # ---------------------------------------------------
 # (PPO) HYPERPARAMETERS

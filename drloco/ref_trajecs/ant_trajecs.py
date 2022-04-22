@@ -30,12 +30,29 @@ class AntExpertTrajectories(BaseReferenceTrajectories):
 
     def _load_ref_trajecs(self):
         dir_path = get_project_path()
-        file_path = 'data/ppo_ant_direction{}.npy'.format(self.direction)
+        file_path = 'data/new_ppo_ant_direction{}.npy'.format(self.direction)
         data = np.load(dir_path + file_path)
         return data, data
 
     def _get_COM_Z_pos_index(self):
         return TORSO_Z
+
+    def is_step_left(self):
+        return False
+
+    def get_random_init_state(self):
+        '''
+        Random State Initialization (cf. DeepMimic Paper).
+        :returns qpos and qvel of a random position on the reference trajectories
+        '''
+        self._pos = np.random.randint(0, self._trajec_len)
+        qpos = self.get_qpos()
+        qvel = self.get_qvel()
+        if qpos.shape[0] != 15:
+            n = qpos.shape[0]
+            xy = np.random.uniform(size=15 - n, low=-0.1, high=0.1)
+            qpos = np.concatenate((xy, qpos), 0)
+        return qpos, qvel
 
     def get_desired_walking_velocity_vector(self, do_eval, debug=False):
         if False and do_eval:

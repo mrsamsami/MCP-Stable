@@ -109,33 +109,33 @@ def vec_env(env_id, num_envs=4, seed=33, norm_rew=True,
     from drloco.mujoco.monitor_wrapper import Monitor as EnvMonitor
     from drloco.mujoco.config import env_map
 
-    # def make_env_func(seed, rank):
-    #     def make_env():
-    #         # env = gym.make(env_name)
-    #         env = env_map[env_id]()
-    #         env.seed(seed + rank * 100)
-    #         if isinstance(env, MimicEnv):
-    #             # wrap a MimicEnv in the EnvMonitor
-    #             # has to be done before converting into a VecEnv!
-    #             env = EnvMonitor(env)
-    #         return env
-    #     return make_env
-
-    # if num_envs == 1:
-    #     vec_env = DummyVecEnv([make_env_func(seed, 0)])
-    # else:
-    #     env_fncts = [make_env_func(seed, rank) for rank in range(num_envs)]
-    #     vec_env = SubprocVecEnv(env_fncts)
-
+    def make_env_func(seed, rank):
         def make_env():
             # env = gym.make(env_name)
             env = env_map[env_id]()
+            env.seed(seed + rank * 100)
             if isinstance(env, MimicEnv):
                 # wrap a MimicEnv in the EnvMonitor
                 # has to be done before converting into a VecEnv!
                 env = EnvMonitor(env)
             return env
-    vec_env = make_vec_env(make_env, n_envs=num_envs)
+        return make_env
+
+    if num_envs == 1:
+        vec_env = DummyVecEnv([make_env_func(seed, 0)])
+    else:
+        env_fncts = [make_env_func(seed, rank) for rank in range(num_envs)]
+        vec_env = SubprocVecEnv(env_fncts)
+
+    # def make_env():
+    #     # env = gym.make(env_name)
+    #     env = env_map[env_id]()
+    #     if isinstance(env, MimicEnv):
+    #         # wrap a MimicEnv in the EnvMonitor
+    #         # has to be done before converting into a VecEnv!
+    #         env = EnvMonitor(env)
+    #     return env
+    # vec_env = make_vec_env(make_env, n_envs=num_envs, vec_env_cls=SubprocVecEnv)
 
     # normalize the observations and rewards of the environment
     # if a load_path was specified, load the running mean and std of obs and rets from this path

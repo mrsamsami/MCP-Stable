@@ -1,4 +1,5 @@
 from os import makedirs, remove, rename
+import os
 import numpy as np
 import wandb
 
@@ -448,3 +449,61 @@ def callback(_locals, _globals):
             utils.log("Saved model after {} updates".format(n_updates))
 
     return True
+
+class SaveVideoCallback(BaseCallback):
+    """
+    Callback for saving the setpoint tracking plot(the check is done every ``eval_freq`` steps)
+    :param eval_env: (gym.Env) The environment used for initialization
+    :param n_eval_episodes: (int) The number of episodes to test the agent
+    :param eval_freq: (int) Evaluate the agent every eval_freq call of the callback.
+    :param log_dir: (str) Path to the folder where the model will be saved.
+      It must contains the file created by the ``Monitor`` wrapper.
+    :param verbose: (int)
+    """
+
+    def __init__(self, eval_env, eval_freq=10000, vec_normalise=False, log_dir=None, verbose=1):
+        super().__init__(verbose)
+        self.eval_env = eval_env
+        self.eval_freq = eval_freq
+        self.save_path = None
+        self.vec_normalise = vec_normalise
+        if log_dir is not None:
+            self.log_dir = log_dir
+            self.save_path = os.path.join(log_dir, "images")
+
+    def _init_callback(self) -> None:
+        # Create folder if needed
+        if self.save_path is not None:
+            os.makedirs(self.save_path, exist_ok=True)
+
+    def preprocess(self, obs):
+        if self.vec_normalise:
+            return self.model.env.normalize_obs(obs)
+        else:
+            return obs
+
+    def _on_step(self) -> bool:
+        if self.n_calls % self.eval_freq == 0:
+            obs = self.eval_env.reset()
+            img = self.eval_env.render("rgb_array")
+            imgs = [img]
+            done = False
+            tot_r = 0.0
+            print(f"Begin Evaluation")
+            while not done:
+                action, _ = self.model.predict(self.preprocess(obs), deterministic=True)
+                obs, reward, done, info = self.eval_env.step(action)
+                img = self.eval_env.render("rgb_array")
+                imgs.append(img)
+                tot_r += reward
+            print(f"Evaluation Reward: {tot_r}")
+            ep_len = len(imgs)
+            print(f"Ep Len: {ep_len}")
+            imgs = np.array(imgs)
+
+            if self.save_path is not None:
+                fname=os.path.join(self.save_path, "eval_video.gif")
+                fps = 30 if ep_len < 200 else 60
+                utils.write_gif_to_disk(imgs, fname, fps)
+
+        return True

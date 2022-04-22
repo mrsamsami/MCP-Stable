@@ -1,3 +1,6 @@
+import os
+import random
+import torch
 import gym, wandb
 import numpy as np
 import seaborn as sns
@@ -5,6 +8,7 @@ from matplotlib import animation
 import matplotlib.pyplot as plt
 from os import path, getcwd
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecNormalize
+from tqdm import tqdm
 from stable_baselines3.common.env_util import make_vec_env
 
 
@@ -362,3 +366,50 @@ def save_as_gif(frames, path='./', filename='animation.gif'):
 
     anim = animation.FuncAnimation(plt.gcf(), animate, frames = len(frames), interval=50)
     anim.save(path + filename, writer='imagemagick', fps=60)
+
+def set_seed(seed_value, use_cuda=True):
+    np.random.seed(seed_value) # cpu vars
+    torch.manual_seed(seed_value) # cpu  vars
+    random.seed(seed_value) # Python
+    os.environ['PYTHONHASHSEED'] = str(seed_value) # Python hash buildin
+    if use_cuda:
+        torch.cuda.manual_seed(seed_value)
+        torch.cuda.manual_seed_all(seed_value) # gpu vars
+        torch.backends.cudnn.deterministic = True  #needed
+        torch.backends.cudnn.benchmark = False
+
+def encode_gif(frames, fps):
+    from subprocess import PIPE, Popen
+
+    h, w, c = frames[0].shape
+    pxfmt = {1: "gray", 3: "rgb24"}[c]
+    cmd = " ".join(
+        [
+            "ffmpeg -y -f rawvideo -vcodec rawvideo",
+            f"-r {fps:.02f} -s {w}x{h} -pix_fmt {pxfmt} -i - -filter_complex",
+            "[0:v]split[x][z];[z]palettegen[y];[x]fifo[x];[x][y]paletteuse",
+            f"-r {fps:.02f} -f gif -",
+        ]
+    )
+    proc = Popen(cmd.split(" "), stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    for image in frames:
+        proc.stdin.write(image.tostring())
+    out, err = proc.communicate()
+    if proc.returncode:
+        raise IOError("\n".join([" ".join(cmd), err.decode("utf8")]))
+    del proc
+    return out
+
+
+def write_gif_to_disk(frames, filename, fps=10):
+    """
+    frame: np.array of shape TxHxWxC
+    """
+    try:
+        frames = encode_gif(frames, fps)
+        with open(filename, "wb") as f:
+            f.write(frames)
+        tqdm.write(f"GIF saved to {filename}")
+    except Exception as e:
+        tqdm.write(frames.shape)
+        tqdm.write("GIF Saving failed.", e)

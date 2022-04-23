@@ -1,6 +1,7 @@
 from os import makedirs, remove, rename
 import os
 import numpy as np
+from tqdm import tqdm
 import wandb
 
 from stable_baselines3 import PPO
@@ -41,6 +42,8 @@ class TrainingMonitor(BaseCallback):
         self.mean_walking_speed = 0
         self.min_walking_speed = 0
         self.mean_reward_means = 0
+        self.tot_reward = 0
+        self.best_tot_reward = 0
         self.count_stable_walks = 0
         self.summary_score = 0
         self.has_reached_stable_walking = False
@@ -69,53 +72,36 @@ class TrainingMonitor(BaseCallback):
         # ... not of the whole training so far...
         if self.num_timesteps % 1e6 < 1000:
             self.env.set_attr('ep_lens', [])
-            # self.env.set_attr('et_phases', [])
-            # self.env.set_attr('difficult_rsi_phases', [])
 
         self.n_steps_after_eval += 1 * cfg.n_envs
 
         # skip n steps to reduce logging interval and speed up training
-        if self.skipped_steps < self.skip_n_steps:
-            self.skipped_steps += 1
-            return True
+        # if self.skipped_steps < self.skip_n_steps:
+        #     self.skipped_steps += 1
+        #     return True
 
         global EVAL_INTERVAL
 
-        if self.n_steps_after_eval >= EVAL_INTERVAL and not cfgl.DEBUG:
-            self.n_steps_after_eval = 0
+        eval_freq = 100000 // cfg.n_envs
+        if self.n_calls % eval_freq == 0:
             walking_stably = self.eval_walking()
-            # terminate training when stable walking has been learned
-            if walking_stably:
-                import wandb
-                # log required num of steps to wandb
-                if not self.has_reached_stable_walking:
-                    # wandb.run.summary['steps_to_convergence'] = self.num_timesteps
-                    # wandb.log({'log_steps_to_convergence': self.num_timesteps})
-                    self.has_reached_stable_walking = True
-                utils.log("WE COULD FINISH TRAINING EARLY!",
-                          [f'Agent learned to stably walk '
-                           f'after {self.num_timesteps} steps'
-                           f'with mean step reward of {self.mean_reward_means}!'])
-
-            if self.mean_walked_distance >= 20:
-                EVAL_INTERVAL = EVAL_INTERVAL_RARE
-            elif self.mean_walked_distance >= 10:
-                EVAL_INTERVAL = EVAL_INTERVAL_MOST_FREQUENT
-            elif self.mean_walked_distance >= 5:
-                EVAL_INTERVAL = EVAL_INTERVAL_FREQUENT
+        # if self.n_steps_after_eval >= EVAL_INTERVAL and not cfgl.DEBUG:
+        #     self.n_steps_after_eval = 0
+        #     walking_stably = self.eval_walking()
 
         ep_len = self.get_mean('ep_len_smoothed')
         ep_ret = self.get_mean('ep_ret_smoothed')
         mean_rew = self.get_mean('mean_reward_smoothed')
 
         # avoid logging data during first episode
-        if ep_len < {5: 8, 400: 60, 200:30, 50:8, 100:15}[cfgl.CTRL_FREQ]:
-            return True
-
-        if not cfgl.DEBUG: self.log_to_tb(mean_rew, ep_len, ep_ret)
+        # if ep_len < {5: 8, 400: 60, 200:30, 50:8, 100:15}[cfgl.CTRL_FREQ]:
+        #     return True
+        log_freq = 25000 // cfg.n_envs
+        if self.n_calls % log_freq == 0:
+            self.log_to_tb(mean_rew, ep_len, ep_ret)
         # do not save a model if its episode length was too short
-        if ep_len > 1500:
-            self.save_model_if_good(mean_rew, ep_ret)
+        # if ep_len > 1500:
+        #     self.save_model_if_good(mean_rew, ep_ret)
 
         # reset counter of skipped steps after data was logged
         self.skipped_steps = 0
@@ -124,11 +110,9 @@ class TrainingMonitor(BaseCallback):
 
 
     def get_mean(self, attribute_name):
-        try:
-            values = self.env.get_attr(attribute_name)
-            mean = np.mean(values)
-            return mean
-        except: return 0.333
+        values = self.env.get_attr(attribute_name)
+        mean = np.mean(values)
+        return mean
 
 
     def log_scalar(self, tag, value):
@@ -144,20 +128,19 @@ class TrainingMonitor(BaseCallback):
         # mean_abs_torque_smoothed = self.get_mean('mean_abs_ep_torque_smoothed')
 
         self.log_scalar('_det_eval/1. Summary Score []', self.summary_score),
-        self.log_scalar('_det_eval/2. stable walks count []', self.count_stable_walks),
         self.log_scalar('_det_eval/4. mean eval distance [m]', self.mean_walked_distance),
         self.log_scalar('_det_eval/5. MIN eval distance [m]', self.min_walked_distance),
         self.log_scalar('_det_eval/3. mean step reward [%]', self.mean_reward_means),
         self.log_scalar('_det_eval/6. mean episode duration [%]', self.mean_episode_duration),
         self.log_scalar('_det_eval/7. mean walking speed [m/s]', self.mean_walking_speed),
 
-        self.log_scalar('_train/1. moved distance [m]',moved_distance),
-        self.log_scalar('_train/2. episode length [%] (smoothed 0.75)',
-                         ep_len/cfg.ep_dur_max),
-        self.log_scalar('_train/3. step reward [] (smoothed 0.25)',
-                         (mean_rew-cfg.alive_bonus)/cfg.rew_scale),
-        self.log_scalar('_train/4. episode return [%] (smoothed 0.75)',
-                         (ep_ret-ep_len*cfg.alive_bonus)/(cfg.ep_dur_max*cfg.rew_scale)),
+        self.log_scalar('_train/1. moved distance [m]', moved_distance),
+        self.log_scalar('_train/2. episode length [%] (smoothed 0.75)', ep_len/cfg.ep_dur_max),
+        self.log_scalar('_train/3. step reward [] (smoothed 0.25)', (mean_rew-cfg.alive_bonus)/cfg.rew_scale),
+        self.log_scalar('_train/4. episode return [%] (smoothed 0.75)', (ep_ret-ep_len*cfg.alive_bonus)/(cfg.ep_dur_max*cfg.rew_scale)),
+        self.log_scalar('_train/5. episode return [] (smoothed 0.75)', ep_ret),
+        self.log_scalar('_train/6. episode return w/o alive bonus [] (smoothed 0.75)', (ep_ret-ep_len*cfg.alive_bonus)),
+        self.log_scalar('_train/7. episode length [m] (smoothed 0.75)', ep_len),
 
         # log reward components
         mean_ep_pos_rew = self.get_mean('mean_ep_pos_rew_smoothed')
@@ -170,78 +153,14 @@ class TrainingMonitor(BaseCallback):
         self.log_scalar(f'_rews/3. mean ep com rew ({cfg.n_envs}envs, smoothed 0.9)',
                           mean_ep_com_rew),
 
-        # log exploration
-        LOG_EXPLORATION = False
-        if LOG_EXPLORATION:
-            parameters = model.get_parameters()
-            parameters = [param for param in parameters if 'logstd' in param]
-            if cfg.is_mod(cfg.MOD_CONST_EXPLORE):
-                logstd = cfg.init_logstd
-            else:
-                logstd = np.array(model.sess.run(parameters))[0]
-            std = np.exp(logstd)
-            mean_std = np.mean(std)
-            std_of_stds = np.std(std)
+        self.log_scalar(f"_rews/total_reward", self.tot_reward)
 
-            self.log_scalar('acts/1. mean std of 8 action distributions', mean_std)
-
-        # log action statistics
-        LOG_ACTION_STATISTICS = False
-        if LOG_ACTION_STATISTICS: # doesn't work in SB3 anymore
-            actions = model.last_actions
-            if actions is not None:
-                abs_actions = np.abs(actions)
-                pos_actions = actions[actions>=0]
-                neg_actions = actions[actions<0]
-                mean_action = np.mean(abs_actions)
-                # monitor how many actions were saturated
-                sat_acts_indices = np.where(abs_actions > 0.95)
-                sat_acts_percentage = np.size(sat_acts_indices[0]) / np.size(actions)
-
-                self.log_scalar('acts/2. mean abs action (over batch and all dims)', mean_action),
-                self.log_scalar('acts/4. mean POS action (over batch and all dims)',
-                        np.mean(pos_actions)),
-                self.log_scalar('acts/5. mean NEG action (over batch and all dims)',
-                        np.mean(neg_actions)),
-
-                self.log_scalar('acts/3. saturated actions percentage (all acts in a batch)',
-                        sat_acts_percentage),
-
-                # wandb.log({"_hist/actions": wandb.Histogram(
-                #     np_histogram=np.histogram(actions, bins=200))}, step=self.num_timesteps)
-
-        # log ET and RSI phases
-        # et_phases = self.env.get_attr('et_phases')
-        # et_phases_flat = [phase for env in et_phases for phase in env]
-        # rsi_phases = self.env.get_attr('rsi_phases')
-        # rsi_phases_flat = [phase for env in rsi_phases for phase in env]
-
-        # wandb.log({"_hist/ET_phases": wandb.Histogram(
-        #     np_histogram=np.histogram(et_phases_flat, bins=250))}, step=self.num_timesteps)
-        # wandb.log({"_hist/RSI_phases": wandb.Histogram(
-        #     np_histogram=np.histogram(rsi_phases_flat, bins=200))}, step=self.num_timesteps)
-        # if len(self.failed_eval_runs_indices) > 0:
-        #     wandb.log({"_hist/trials_below_20m": wandb.Histogram(
-        #         np_histogram=np.histogram(self.failed_eval_runs_indices,
-        #                                   bins=20, range=(0,19)))}, step=self.num_timesteps)
-
-        ep_lens = self.env.get_attr('ep_lens')
-        ep_lens = [ep_len for env_lens in ep_lens for ep_len in env_lens]
-        # wandb.log({"_hist/ep_lens": wandb.Histogram(
-        #     np_histogram=np.histogram(ep_lens, bins=40))}, step=self.num_timesteps)
-
-        # difficult_rsi_phases = self.env.get_attr('difficult_rsi_phases')
-        # difficult_rsi_phases = [phase for env_phases in difficult_rsi_phases for phase in env_phases]
-        # wandb.log({"_hist/difficult_rsi_phases": wandb.Histogram(
-        #     np_histogram=np.histogram(difficult_rsi_phases, bins=250, range=(0,1)))},
-        #     step=self.num_timesteps)
-
-        if False: # np.random.randint(low=1, high=500) == 77:
-            utils.log(f'Logstd after {int(self.num_timesteps/1e3)}k timesteps:',
-                      [f'mean std: {mean_std}', f'std of stds: {std_of_stds}'])
-        # log histograms
-        # wandb.log({"_det_eval/1. walked distances": wandb.Histogram(
-        # np_histogram=np.histogram(self.moved_distances, bins=20))}, step=self.num_timesteps)
+        ep_pos_rew = self.get_mean('ep_pos_rew_smoothed')
+        ep_vel_rew = self.get_mean('ep_vel_rew_smoothed')
+        ep_com_rew = self.get_mean('ep_com_rew_smoothed')
+        self.log_scalar(f'_rews/ep pos rew', ep_pos_rew),
+        self.log_scalar(f'_rews/ep vel rew', ep_vel_rew),
+        self.log_scalar(f'_rews/ep com rew', ep_com_rew),
 
 
     def save_model_if_good(self, mean_rew, ep_ret):
@@ -276,7 +195,7 @@ class TrainingMonitor(BaseCallback):
         How far does it walk (in average and at least) without falling?
         @returns: If the training can be stopped as stable walking was achieved.
         """
-        moved_distances, mean_rewards, ep_durs, mean_com_x_vels = [], [], [], []
+        moved_distances, mean_rewards, ep_durs, mean_com_x_vels, tot_rew = [], [], [], [], []
         # save current model and environment
         checkpoint = f'{int(self.num_timesteps/1e5)}'
         model_path, env_path = \
@@ -293,18 +212,26 @@ class TrainingMonitor(BaseCallback):
         # evaluate deterministically
         utils.log(f'Starting model evaluation, checkpoint {checkpoint}')
         obs = eval_env.reset()
-        eval_n_times = cfgl.EVAL_N_TIMES if self.num_timesteps > 1e6 else 10
-        for i in range(eval_n_times):
+        eval_n_times = 5
+        video_freq = 500000 // cfg.n_envs
+        should_record_video = self.n_calls % video_freq == 0
+        for i in tqdm(range(eval_n_times)):
             ep_dur = 0
             walked_distance = 0
             rewards = []
+            imgs = []
             while True:
                 ep_dur += 1
                 action, _ = eval_model.predict(obs, deterministic=True)
                 obs, reward, done, info = eval_env.step(action)
+
+                if i == eval_n_times - 1 and should_record_video:
+                    img = eval_env.render("rgb_array")
+                    imgs.append(img)
                 if done:
                     moved_distances.append(walked_distance)
                     mean_rewards.append(np.mean(rewards))
+                    tot_rew.append(np.sum(rewards))
                     ep_durs.append(ep_dur)
                     mean_com_x_vel = walked_distance / (ep_dur / cfgl.CTRL_FREQ)
                     mean_com_x_vels.append(mean_com_x_vel)
@@ -316,7 +243,12 @@ class TrainingMonitor(BaseCallback):
                     # undo reward normalization, don't save last reward
                     reward = reward * np.sqrt(eval_env.ret_rms.var + 1e-8)
                     rewards.append(reward[0])
-
+        if should_record_video:
+            imgs = np.array(imgs)
+            vid_folder = os.path.join(cfg.save_path, "videos")
+            os.makedirs(vid_folder, exist_ok=True)
+            fname = os.path.join(vid_folder, "eval_video.gif")
+            utils.write_gif_to_disk(imgs, fname, 200)
         # calculate min and mean walked distance
         self.moved_distances = moved_distances
         self.mean_walked_distance = np.mean(moved_distances)
@@ -330,6 +262,12 @@ class TrainingMonitor(BaseCallback):
 
         # calculate the average mean reward
         self.mean_reward_means = np.mean(mean_rewards)
+        self.tot_reward = np.mean(tot_rew)
+        self.logger.record("scalars/tot_reward", self.tot_reward)
+        act_rew = [x - y * cfg.alive_bonus for x, y in zip(tot_rew, ep_durs)]
+        self.logger.record("scalars/act_reward", np.mean(act_rew))
+        self.logger.record("scalars/ep_len", np.mean(ep_durs))
+
         # normalize it
         self.mean_reward_means = (self.mean_reward_means - cfg.alive_bonus)/cfg.rew_scale
 
@@ -346,8 +284,7 @@ class TrainingMonitor(BaseCallback):
         dt = EVAL_INTERVAL / (
             EVAL_INTERVAL_RARE if self.num_timesteps < EVAL_MORE_FREQUENT_THRES else
             EVAL_INTERVAL_FREQUENT)
-        self.summary_score += dt * 4 * self.mean_reward_means ** 2 \
-                              * (self.count_stable_walks / cfgl.EVAL_N_TIMES) ** 4 \
+        self.summary_score += dt * 4 * self.mean_reward_means ** 2 * (self.count_stable_walks / cfgl.EVAL_N_TIMES) ** 4
 
         if False: # runs_20m >= 20 and not cfg.is_mod(cfg.MOD_MIRR_QUERY_VF_ONLY):
             cfg.modification += f'/{cfg.MOD_QUERY_VF_ONLY}'
@@ -372,6 +309,13 @@ class TrainingMonitor(BaseCallback):
         retain_model = is_stable_humanlike_walking and not were_enough_models_saved
         distances_report = [f'Min walked distance: {min_dist}m',
                             f'Mean walked distance: {mean_dist}m']
+
+        if self.best_tot_reward < self.tot_reward:
+            utils.save_model(self.model, cfg.save_path, "best", full=False, verbose=True)
+            self.best_tot_reward = self.tot_reward
+
+        utils.save_model(self.model, cfg.save_path, "latest", full=False)
+
         if retain_model:
             utils.log('Saving Model:', distances_report)
             # rename model: add distances to the models names

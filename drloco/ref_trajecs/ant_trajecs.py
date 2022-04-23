@@ -17,7 +17,7 @@ HIP3_ANG_V, ANKLE3_ANG_V, HIP4_ANG_V, ANKLE5_ANG_V = 23, 24, 25, 26
 class AntExpertTrajectories(BaseReferenceTrajectories):
     def __init__(self, qpos_indices, qvel_indices, adaptations, direction):
         # the mocaps were sampled with 500Hz
-        sampling_frequency = 500 #TODO: not sure!
+        sampling_frequency = 20 #TODO: not sure!
         # for control frequency, use the one specified in the config file
         from drloco.config.config import CTRL_FREQ
         control_frequency = CTRL_FREQ

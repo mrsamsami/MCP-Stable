@@ -56,7 +56,7 @@ rew_scale = 1
 alive_bonus = 0.2 * rew_scale
 
 # Early Termination: maximum steps in the environment per episode
-ep_dur_max = 1000
+ep_dur_max = 3000
 
 # ---------------------------------------------------
 # (PPO) HYPERPARAMETERS
@@ -66,7 +66,7 @@ ep_dur_max = 1000
 # ---------------------------------------------------
 
 # The discount factor we found to be optimal for different control frequencies
-gamma = {5:0.99, 50:0.99, 100: 0.99, 200:0.995, 400:0.998}[cfg.CTRL_FREQ]
+gamma = {5:0.99, 20:0.99, 50:0.99, 100: 0.99, 200:0.995, 400:0.998}[cfg.CTRL_FREQ]
 
 # PPO samples the actions from a Gaussian Distribution.
 # This hyperparameter specifies the the log standard deviation

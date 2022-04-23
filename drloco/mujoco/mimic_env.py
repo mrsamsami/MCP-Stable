@@ -47,7 +47,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         self.control_freq = cfgl.CTRL_FREQ
 
         # calculate for how many frames to apply the same action
-        self._frame_skip = self._calculate_frameskip()
+        # self._frame_skip = self._calculate_frameskip()
+        self._frame_skip = 5
         # initialize Mujoco Environment
         MujocoEnv.__init__(self, xml_path, self._frame_skip)
         # init EzPickle (think it is required to be able to save and load models)
@@ -117,7 +118,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
 
         # terminate the episode?
         # todo: should be is_done() or self.ep_dur >= cfg.ep_dur_max
-        done = com_z_pos < 0.5 or max_eplen_reached
+        is_healthy = 0.2 <= com_z_pos <= 1.0
+        done = not is_healthy or max_eplen_reached
 
         # todo: do we need this necessarily in the simple straight walking case?
         # terminate_early, _, _, _ = self.do_terminate_early()

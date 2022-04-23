@@ -5,6 +5,7 @@ from os import getcwd
 
 # import required modules
 import os.path
+import numpy as np
 import wandb
 
 import torch as th
@@ -130,6 +131,7 @@ def train():
     if not cfgl.DEBUG:
         utils.save_model(model, cfg.save_path, INIT_CHECKPOINT_SUFFIX)
 
+    np.seterr(divide='raise')
     # train model
     model.learn(total_timesteps=training_timesteps, callback=TrainingMonitor())
 

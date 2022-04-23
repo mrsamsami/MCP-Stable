@@ -189,7 +189,7 @@ def plot_weight_matrix(weight_matrix, show=True, max_abs_value=1, center_cmap=Tr
     return weight_matrix
 
 
-def save_model(model, path, checkpoint, full=False):
+def save_model(model, path, checkpoint, full=False, verbose=False):
     """
     saves the model, the corresponding environment means and pi weights
     :param full: if True, also save network weights and upload model to wandb
@@ -199,54 +199,10 @@ def save_model(model, path, checkpoint, full=False):
     # save Running mean of observations and reward
     env_path = path + f'envs/env_{checkpoint}'
     model.get_env().save(env_path)
-
-    if full:
-        save_pi_weights(model, checkpoint)
-        # save model and env to wandb
-        # wandb.save(model_path)
-        # wandb.save(env_path)
-
+    if verbose:
+        tqdm.write(f"Saving model to {model_path}")
+        tqdm.write(f"Saving env to {env_path}")
     return model_path, env_path
-
-
-def save_pi_weights(model, name):
-    """Saves all weights of the policy network
-     @:param name: Info to append to the file's name"""
-    weights = []
-    biases = []
-    attens = []
-
-    # todo: check why it does not work for pretrained models!
-    return
-
-    save_path = None
-    # log('Model Parameters:', model.params)
-
-    for param in model.params:
-        if 'pi' in param.name:
-            if 'w:0' in param.name:
-                weights.append(model.sess.run(param))
-            elif 'b:0' in param.name:
-                biases.append(model.sess.run(param))
-            elif 'att' in param.name:
-                print('Saving attention matrix!')
-                attens.append(model.sess.run(param))
-
-    if len(weights) > 10:
-        # we have a sparse network
-        np.savez(save_path + 'models/params/weights_' + str(name), Ws=weights)
-        np.savez(save_path + 'models/params/biases_' + str(name), bs=biases)
-        print('Saved weights of a sparse network')
-        return
-
-    # save policy network weights
-    np.savez(save_path + 'models/params/weights_' + str(name),
-             W0=weights[0], W1=weights[1], W2=weights[2])
-    np.savez(save_path + 'models/params/biases_' + str(name),
-             b0=biases[0], b1=biases[1], b2=biases[2])
-    if len(attens) > 1:
-        np.savez(save_path + 'models/params/attens_' + str(name),
-                 A0=attens[0], A1=attens[1])
 
 def load_env(checkpoint, save_path, env_id):
     # load a single environment for evaluation

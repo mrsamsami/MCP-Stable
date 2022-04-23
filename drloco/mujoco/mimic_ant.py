@@ -26,17 +26,17 @@ class MimicAntEnv(MimicEnv):
         mujoco_xml_file = 'ant.xml'
         # init the mimic environment
         if randomise_traj:
-            ref_t = np.random.randint(4)
+            self.ref_t = np.random.randint(4)
         else:
-            ref_t = 0
-        MimicEnv.__init__(self, mujoco_xml_file, self.possible_reference_trajectories[ref_t])
+            self.ref_t = 0
+        MimicEnv.__init__(self, mujoco_xml_file, self.possible_reference_trajectories[self.ref_t])
 
     def reset(self):
         if randomise_traj:
-            ref_t = np.random.randint(4)
+            self.ref_t = np.random.randint(4)
         else:
-            ref_t = 0
-        self.refs = self.possible_reference_trajectories[ref_t]
+            self.ref_t = 0
+        self.refs = self.possible_reference_trajectories[self.ref_t]
         return super().reset()
 
     def _get_COM_indices(self):
@@ -46,3 +46,16 @@ class MimicAntEnv(MimicEnv):
         # return both knee and hip joints
         return [8, 10, 12, 14], [7, 9, 11, 13]
 
+    def update_walked_distance(self):
+        """Get the so far traveled distance by integrating the velocity vector."""
+        direction = int(self.ref_t // 2)
+        pos = self.ref_t % 2
+        sign = {0: 1, 1: -1}[pos]
+
+        vel_vec = self.data.qvel[direction]
+        # avoid high velocities due to numerical issues in the simulation
+        # very roughly assuming maximum speed of about 20 km/h
+        # not considering movement direction
+        vel_vec = np.clip(vel_vec, -5.5, 5.5)
+        vel = np.linalg.norm(vel_vec)
+        self.walked_distance += sign * (vel * 1 / self.control_freq)

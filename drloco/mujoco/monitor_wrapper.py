@@ -108,17 +108,22 @@ class Monitor(gym.Wrapper):
 
             ep_rewards = self.rewards[-self.ep_len:]
             mean_reward = np.mean(ep_rewards[:-1])
+            self.tot_ep_reward = np.sum(ep_rewards)
             self.mean_reward_smoothed = smooth('rew', mean_reward)
             self.mean_ep_pos_rew_smoothed = smooth('ep_pos_rew', np.mean(self.ep_pos_rews))
             self.mean_ep_vel_rew_smoothed = smooth('ep_vel_rew', np.mean(self.ep_vel_rews))
             self.mean_ep_com_rew_smoothed = smooth('ep_com_rew', np.mean(self.ep_com_rews))
 
+            self.ep_pos_rew_smoothed = smooth('ep_tot_pos_rew', np.sum(self.ep_pos_rews))
+            self.ep_vel_rew_smoothed = smooth('ep_tot_vel_rew', np.sum(self.ep_vel_rews))
+            self.ep_com_rew_smoothed = smooth('ep_tot_com_rew', np.sum(self.ep_com_rews))
+
             ep_return = np.sum(ep_rewards)
             self.returns.append(ep_return)
-            self.ep_ret_smoothed = smooth('ep_ret', ep_return, 0.25)
+            self.ep_ret_smoothed = smooth('ep_ret', ep_return, 0.9)
 
             self.ep_lens.append(self.ep_len)
-            self.ep_len_smoothed = smooth('ep_len', self.ep_len, 0.75)
+            self.ep_len_smoothed = smooth('ep_len', self.ep_len, 0.9)
             if self.ep_len < self.ep_len_smoothed*0.75:
                 self.difficult_rsi_phases.append(self.init_pos)
             self.ep_len = 0

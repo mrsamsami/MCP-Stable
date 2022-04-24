@@ -20,7 +20,7 @@ ENV_ID = 'AntWalker'
 # specify control frequency in Hz (policy queries per second)
 CTRL_FREQ = {'StraightMimicWalker': 200,
              'MimicWalker165cm65kg': 100,
-             'AntWalker': 20}[ENV_ID]
+             'AntWalker': 5}[ENV_ID]
 # number of episodes per model evaluation
 EVAL_N_TIMES = 10
 # minimum distance [m] to walk to label the gait as stable

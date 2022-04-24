@@ -140,7 +140,7 @@ noptepochs = 4
 run_id = str(np.random.randint(0, 1000))
 # the part of the path constructed from hyperparameters
 _mod_path = ('cfg.DEBUG/' if cfg.DEBUG else '') + \
-            f'train/{modification}/{cfg.ENV_ID}/{n_envs}envs/' \
+            f'train/{modification}_ctrl_freq_{cfg.CTRL_FREQ}/{cfg.ENV_ID}/{n_envs}envs/' \
             f'{mio_samples}mio/'
 # the final saving path of the current agent
 save_path = utils.get_project_path() + 'models/' + _mod_path + f'{run_id}/'

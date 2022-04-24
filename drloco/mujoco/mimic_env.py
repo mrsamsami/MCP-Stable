@@ -47,8 +47,8 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         self.control_freq = cfgl.CTRL_FREQ
 
         # calculate for how many frames to apply the same action
-        # self._frame_skip = self._calculate_frameskip()
-        self._frame_skip = 5
+        self._frame_skip = self._calculate_frameskip()
+        self._frame_skip = self._frame_skip * 5
         # initialize Mujoco Environment
         MujocoEnv.__init__(self, xml_path, self._frame_skip)
         # init EzPickle (think it is required to be able to save and load models)

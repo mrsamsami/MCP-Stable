@@ -145,7 +145,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         """ Returns the reward of the current state.
             :param done: is True, when episode finishes and else False"""
         return self._get_ET_reward() if done \
-            else self.get_imitation_reward() + cfg.alive_bonus
+            else self.get_imitation_reward()
 
 
     def _get_ET_reward(self):
@@ -601,7 +601,7 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         dif = qpos - ref_pos
         dif_sqrd = np.square(dif)
         sum = np.sum(dif_sqrd)
-        pose_rew = np.exp(-3 * sum)
+        pose_rew = np.exp(-2 * sum)
         return pose_rew
 
     def get_vel_reward(self):
@@ -611,18 +611,18 @@ class MimicEnv(MujocoEnv, gym.utils.EzPickle):
         difs = qvel - ref_vel
         dif_sqrd = np.square(difs)
         dif_sum = np.sum(dif_sqrd)
-        vel_rew = np.exp(-0.05 * dif_sum)
+        vel_rew = np.exp(-0.1 * dif_sum)
         return vel_rew
 
     def get_com_reward(self):
         qpos, qvel = self.get_joint_kinematics()
         ref_pos, ref_vel = self.get_ref_kinematics()
-        com_is = self._get_COM_indices()
+        com_is = self._get_COM_indices()[-1]
         com_pos, com_ref = qpos[com_is], ref_pos[com_is]
         dif = com_pos - com_ref
         dif_sqrd = np.square(dif)
         sum = np.sum(dif_sqrd)
-        com_rew = np.exp(-16 * sum)
+        com_rew = np.exp(-10 * sum)
         return com_rew
 
 

@@ -37,13 +37,18 @@ print(f"Begin Evaluation")
 ep_max_len = 1000
 pbar = tqdm(total=ep_max_len)
 i = 0
+
+# ! Cardinal Direction Heading
 dirs = np.array([0, 45, 90, 135, 180, 225, 270, 315])
 dirs = np.array([0, 90, 180, 270])
 dirs = dirs[..., None]
 dirs = np.repeat(dirs, ep_max_len/dirs.shape[0], 1)
 dirs = dirs.flatten()
+
+# ! S Shape Heading
 # dirs = np.concatenate((np.linspace(0, 180, ep_max_len // 2), np.linspace(180, 0, ep_max_len // 2)))
 # dirs = np.round(dirs, 1)
+
 while not done:
     eval_env.envs[0].set_direction(dirs[i])
     action, _ = model.predict(obs, deterministic=True)
@@ -68,7 +73,7 @@ for i in range(weights.shape[1]):
     plt.plot(weights[:, i], label=f"Model {i}")
 plt.xlim(0, ep_len)
 plt.ylim(0, 1)
-plt.title(f"Weights assigned to PPO primitives {eval_env.envs[0].direction}")
+plt.title(f"Weights assigned to primitives {eval_env.envs[0].direction}")
 plt.tight_layout()
 plt.legend()
 fname=os.path.join(save_path, f"{run_id}_weights.jpg")

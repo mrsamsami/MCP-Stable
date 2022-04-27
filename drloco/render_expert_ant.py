@@ -37,9 +37,12 @@ obs = env.reset()
 img = env.render(mode="rgb_array")
 frames = [img]
 data = []
-for t in tqdm(range(1000)):
+rew = []
+pbar = tqdm(total=1000)
+while not done:
     action, _ = model.predict(obs, deterministic=True)
     obs, rewards, dones, info = env.step(action)
+    rew.append(rewards)
     if save_gif:
         img = env.render(mode="rgb_array")
         frames.append(img)
@@ -50,18 +53,21 @@ for t in tqdm(range(1000)):
         ]
     )
     data.append(state_vector)
-    if dones[0]:
-        break
-
+    done = dones[0]
+    pbar.update(1)
+pbar.close()
 env.close()
+
+rew = np.array(rew)
+print(rew.sum())
 data = np.array(data).T
 plt.figure(figsize=(20, 20))
 for i in range(data.shape[0]):
     plt.subplot(6, 6, i + 1)
     plt.plot(data[i, :], color='b')
     if i < 15:
-            grad = np.gradient(data[i, :], color='r')
-            plt.plot(grad)
+            grad = np.gradient(data[i, :])
+            plt.plot(grad, color='r')
     plt.title(labels[i])
     plt.xlim(0, 300)
 plt.savefig("temp.jpg", dpi=120)

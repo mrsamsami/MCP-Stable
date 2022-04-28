@@ -17,8 +17,12 @@ mujoco/gym_mimic_envs\.egg-info/
 
 docs/_build/
 
-logs
+*logs*
 
-out
+*out*
 
 *egg*
+
+*trajs*
+
+*plots*

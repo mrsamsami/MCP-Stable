@@ -1,8 +1,9 @@
-import numpy as np
 import gym
+import numpy as np
 from gym import utils
 from gym.envs.mujoco import mujoco_env
 from gym.envs.registration import register
+
 
 class DirAntEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     def __init__(self, direction=0):
@@ -90,7 +91,7 @@ class GoalAnt(DirAntEnv):
 
 
 class RandomGoalAnt(DirAntEnv):
-    def __init__(self, direction=0, direction_range=(0, 270), direction_list=None):
+    def __init__(self, direction=0, direction_range=None, direction_list=[0, 90, 180, 270]):
         self.direction_range = direction_range
         self.direction_list = direction_list
         super(RandomGoalAnt, self).__init__(direction)
@@ -103,7 +104,9 @@ class RandomGoalAnt(DirAntEnv):
     def reset(self, direction=None):
         if direction is None:
             if self.direction_range is not None:
-                direction = np.random.randint(self.direction_range[0], self.direction_range[1])
+                direction = np.random.randint(
+                    self.direction_range[0], self.direction_range[1]
+                )
             elif self.direction_list is not None:
                 direction = np.random.choice(self.direction_list)
         self.set_direction(direction)
@@ -112,22 +115,38 @@ class RandomGoalAnt(DirAntEnv):
 
 
 register(
-    id='NewAnt-v2',
+    id="NewAnt-v2",
     entry_point=DirAntEnv,
     max_episode_steps=1000,
     reward_threshold=6000.0,
 )
 
 register(
-    id='NewGoalAnt-v2',
+    id="NewGoalAnt-v2",
     entry_point=GoalAnt,
     max_episode_steps=1000,
     reward_threshold=6000.0,
 )
 
 register(
-    id='NewRandomGoalAnt-v2',
+    id="NewRandomGoalAnt-v2",
     entry_point=RandomGoalAnt,
     max_episode_steps=1000,
     reward_threshold=6000.0,
 )
+
+
+if __name__ == "__main__":
+    import gym
+
+    env = gym.make("NewAnt-v2")
+    print(env.action_space.shape, env.observation_space.shape)
+    print(env.reset().shape, env.step(env.action_space.sample())[0].shape)
+
+    env = gym.make("NewGoalAnt-v2")
+    print(env.action_space.shape, env.observation_space.shape)
+    print(env.reset().shape, env.step(env.action_space.sample())[0].shape)
+
+    env = gym.make("NewRandomGoalAnt-v2")
+    print(env.action_space.shape, env.observation_space.shape)
+    print(env.reset().shape, env.step(env.action_space.sample())[0].shape)

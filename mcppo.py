@@ -90,8 +90,9 @@ class GoalAnt(DirAntEnv):
         return obs
 
 class RandomGoalAnt(DirAntEnv):
-    def __init__(self, direction=0, direction_range=(0, 360)):
+    def __init__(self, direction=0, direction_range=(0, 270), direction_list=None):
         self.direction_range = direction_range
+        self.direction_list = direction_list
         super(RandomGoalAnt, self).__init__(direction)
         # NOTE TO SELF: MujocoEnv calls env.step and uses the returned obs to set the observation_space, hence there is no need to manually change the observation space here.
 
@@ -630,7 +631,7 @@ env_model="NewRandomGoalAnt-v2"
 
 learn_log_std=False
 
-run_id = f"mcppo_sb3log_std_{learn_log_std}_8directions_6M"
+run_id = f"transfer_mcppo"
 direction = direction
 algo = "PPO"
 logdir = "logs"
@@ -638,8 +639,8 @@ seed = 0
 vec_normalise = False
 
 num_envs = 4
-training_timesteps = int(6e6)
-checkpoint_freq = 500000
+training_timesteps = int(3e6)
+checkpoint_freq = 200000
 eval_freq = 50000
 video_freq = 100000
 
@@ -665,8 +666,13 @@ env_direction = {
     3: 270,
 }
 
+env_kwargs={
+    'direction': env_direction[direction],
+    'direction_range': [270, 360],
+    }
+
 assert "GoalAnt-v2" in env_model
-env = make_vec_env(env_model, n_envs=num_envs, monitor_dir=mon_dir, env_kwargs={'direction': env_direction[direction]}, seed=seed)
+env = make_vec_env(env_model, n_envs=num_envs, monitor_dir=mon_dir, env_kwargs=env_kwargs, seed=seed)
 
 assert not vec_normalise
 if vec_normalise:
@@ -682,7 +688,7 @@ else:
 env = VecCheckNan(env, raise_exception=True)
 
 checkpoint_callback = CheckpointCallback(int(checkpoint_freq // num_envs), model_dir, tag_name, 2)
-eval_env = make_vec_env(env_model, n_envs=1, monitor_dir=mon_dir, env_kwargs={'direction': env_direction[direction]})
+eval_env = make_vec_env(env_model, n_envs=1, monitor_dir=mon_dir, env_kwargs=env_kwargs)
 save_video_callback = SaveVideoCallback(eval_env, int(eval_freq // num_envs), int(video_freq // num_envs), vec_normalise, log_dir, 2)
 callback = CallbackList([checkpoint_callback, save_video_callback])
 

@@ -1,5 +1,14 @@
 # Multiplicative Compositional Policies
 
+This repo provides implementations of Multiplicative Compositional Policies (MCP), which is a method for learning reusable motor skills that can be composed to produce a range of complex behaviors. All code is written in Python 3, using PyTorch and NumPy. 
+
+---
+
+>  MCP: Learning Composable Hierarchical Control with Multiplicative Compositional Policies. NeurIPS 2019. <br /> 
+>  __[[Paper]](https://arxiv.org/abs/1905.09808)__
+
+---
+
 ## Initial experiments
 
 ```sh

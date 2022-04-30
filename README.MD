@@ -9,7 +9,13 @@ This repo provides implementations of Multiplicative Compositional Policies (MCP
 
 ---
 
-## Initial experiments
+
+## Installation
+To install requirements, please refer to [DRLoco installation documentation](https://drloco.readthedocs.io/en/latest/main/install.html).
+
+## How to run
+
+#### Initial experiments
 
 ```sh
 python mcppo.py
@@ -17,7 +23,7 @@ python mcppo.py
 python mcp_naive.py
 ```
 
-## Experiments from paper
+#### Experiments from paper
 
 ```sh
 cd mcp
@@ -32,14 +38,14 @@ python transfer.py
 ## To generate the trajectories
 
 
-### Initial Experiments
+#### Initial Experiments
 ```sh
 
 bash gen_plots.sh
 bash make_traj.sh
 ```
 
-### Experiments from paper
+#### Experiments from paper
 ```sh
 cd mcp
 

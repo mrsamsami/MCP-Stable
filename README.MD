@@ -15,7 +15,9 @@ Model Name | Description
 ------------ | -------------
 MCPPO | The paper jointly trained primitives end-to-end, leading to the specializations. In MCPPO, we trained each primitive separately for an individual task. 
 MCP Naive | Like the other characters, we incorporate expert demonstrations in the pre-training phase.
-
+<p align="center">
+<img src="archi.png" alt="An illustraion of the method" title="An illustraion of the method" width = "50%"/>
+</p>
 
 ## Installation
 To install requirements, please refer to [DRLoco installation documentation](https://drloco.readthedocs.io/en/latest/main/install.html).

@@ -9,6 +9,13 @@ This repo provides implementations of Multiplicative Compositional Policies (MCP
 
 ---
 
+### Experiments Details
+The character we decided to work with is a simple degrees-of-freedom (DoFs) ant. Although the paper employs imitative rewards for other characters, it trains the ant by a common RL approach (no imitation). Consequently, we trained the ant in this manner. Additionally, we devised various training methods:
+Model Name | Description
+------------ | -------------
+MCPPO | The paper jointly trained primitives end-to-end, leading to the specializations. In MCPPO, we trained each primitive separately for an individual task. 
+MCP Naive | Like the other characters, we incorporate expert demonstrations in the pre-training phase.
+
 
 ## Installation
 To install requirements, please refer to [DRLoco installation documentation](https://drloco.readthedocs.io/en/latest/main/install.html).

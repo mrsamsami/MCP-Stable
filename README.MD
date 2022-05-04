@@ -6,6 +6,7 @@ This repo provides implementations of Multiplicative Compositional Policies (MCP
 
 >  MCP: Learning Composable Hierarchical Control with Multiplicative Compositional Policies. NeurIPS 2019. <br /> 
 >  __[[Paper]](https://arxiv.org/abs/1905.09808)__
+>  __[[Our Slides]](https://docs.google.com/presentation/d/1tMgFI78meWU23zfVR2MUig-pUVMZxJSuFMHfaYTWsKE/edit?usp=sharing)__
 
 ---
 
@@ -14,7 +15,7 @@ The character we decided to work with is a simple degrees-of-freedom (DoFs) ant.
 Model Name | Description
 ------------ | -------------
 MCPPO | The paper jointly trained primitives end-to-end, leading to the specializations. In MCPPO, we trained each primitive separately for an individual task. 
-MCP Naive | Like the other characters, we incorporate expert demonstrations in the pre-training phase.
+MCP_I | Like the other characters, we incorporate expert demonstrations in the pre-training phase.
 <p align="center">
 <img src="archi.png" alt="An illustraion of the method" title="An illustraion of the method" width = "50%"/>
 </p>
